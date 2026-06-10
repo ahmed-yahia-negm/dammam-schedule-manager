@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>DAMMAM TECH | KSA Schedule Manager — Precision Edition</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f5f9fe;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      font-family: 'Inter', 'Poppins', sans-serif;
+    }
+
+    /* Splash Screen */
+    .splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a5276 0%, #2c7da0 50%, #1a5276 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      transition: opacity 0.8s ease-in-out;
+    }
+    
+    .splash-content {
+      text-align: center;
+      animation: fadeInUp 1s ease-out;
+      padding: 2rem;
+    }
+    
+    .splash-logo {
+      font-size: 5rem;
+      color: white;
+      margin-bottom: 1.5rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 1; text-shadow: 0 0 20px rgba(255,255,255,0.8); }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .splash-title { font-size: 2.5rem; font-weight: 800; color: white; margin-bottom: 0.5rem; }
+    .splash-subtitle { font-size: 1rem; color: rgba(255,255,255,0.8); margin-bottom: 2rem; }
+    .splash-quote { font-size: 1.2rem; font-style: italic; color: #e0ecf4; max-width: 500px; margin: 0 auto; padding: 1rem; border-top: 2px solid rgba(255,255,255,0.3); border-bottom: 2px solid rgba(255,255,255,0.3); }
+    .splash-quote i { margin: 0 10px; }
+    .splash-loader { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; margin: 2rem auto 0; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .splash-progress { width: 200px; height: 3px; background: rgba(255,255,255,0.3); border-radius: 3px; margin: 1rem auto 0; overflow: hidden; }
+    .splash-progress-bar { width: 0%; height: 100%; background: white; animation: progress 3s linear forwards; }
+    @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+    
+    .main-content { opacity: 0; transition: opacity 0.5s ease-in-out; }
+    .main-content.visible { opacity: 1; }
+
+    /* Dashboard */
+    .dashboard-container { max-width: 1700px; margin: 0 auto; }
+    .breathing-logo { font-size: 2.3rem; color: #2c7da0; animation: breatheNeon 2.5s ease-in-out infinite; }
+    @keyframes breatheNeon { 
+      0% { transform: scale(0.96); text-shadow: 0 0 0px #5dade2; } 
+      50% { transform: scale(1.05); text-shadow: 0 0 15px #5dade2; } 
+      100% { transform: scale(0.96); text-shadow: 0 0 0px #5dade2; } 
+    }
+    
+    /* HEADER — sentence next to logo */
+    .header-section { 
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; 
+      margin-bottom: 2rem; gap: 1rem; background: #d6e6f0; 
+      padding: 1rem 2rem; border-radius: 24px; 
+      transition: all 0.3s; border: 1px solid rgba(44,125,160,0.2);
+      box-shadow: 0 12px 28px -12px rgba(0,0,0,0.15);
+    }
+    .header-section:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 22px 36px -14px rgba(26,82,118,0.4); 
+      background: #e0ecf4;
+    }
+    .logo-area { 
+      display: flex; 
+      align-items: center; 
+      gap: 14px; 
+    }
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .logo-text .main-title {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #1a5276;
+      line-height: 1.2;
+      letter-spacing: -0.3px;
+    }
+    .logo-text .sub-title {
+      font-size: 0.7rem;
+      color: #2c7da0;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    
+    /* BUTTONS — strong shadows restored */
+    .btn { 
+      display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.5rem; 
+      border-radius: 50px; font-weight: 700; font-size: 0.8rem; border: none; 
+      cursor: pointer; transition: all 0.3s; background: #cde3ef; color: #1a5276; 
+      box-shadow: 0 6px 12px -6px rgba(0,0,0,0.1);
+    }
+    .btn-excel { background: #2e86c1; color: white; box-shadow: 0 8px 18px -6px rgba(46,134,193,0.4); }
+    .btn-excel:hover { background: #1b6fa8; transform: translateY(-5px); box-shadow: 0 20px 28px -10px rgba(46,134,193,0.6); }
+    .btn-pdf { background: #c44536; color: white; box-shadow: 0 8px 18px -6px rgba(196,69,54,0.4); }
+    .btn-pdf:hover { background: #a23426; transform: translateY(-5px); box-shadow: 0 20px 28px -10px rgba(196,69,54,0.6); }
+    .btn-backup { background: #5dade2; color: white; box-shadow: 0 8px 18px -6px rgba(93,173,226,0.4); }
+    .btn-backup:hover { background: #3498db; transform: translateY(-5px); box-shadow: 0 22px 32px -12px #2e86c1; }
+    .btn-restore { background: #8e6e5a; color: white; box-shadow: 0 8px 18px -6px rgba(142,110,90,0.4); }
+    .btn-restore:hover { background: #7a5a4a; transform: translateY(-5px); box-shadow: 0 22px 32px -12px #8e6e5a; }
+    
+    /* DAY CONTROL PANEL */
+    .day-control-panel { 
+      background: #d6e6f0; border-radius: 24px; padding: 1rem 1.8rem; 
+      margin-bottom: 2rem; display: flex; flex-wrap: wrap; 
+      justify-content: space-between; align-items: center; gap: 1rem; 
+      transition: all 0.3s; border: 1px solid rgba(44,125,160,0.2);
+      box-shadow: 0 10px 22px -10px rgba(0,0,0,0.1);
+    }
+    .day-control-panel:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 20px 32px -12px rgba(44,125,160,0.35);
+    }
+    .date-selector { 
+      display: flex; align-items: center; gap: 1rem; 
+      background: #cde3ef; padding: 0.4rem 1.2rem; border-radius: 50px;
+    }
+    .date-selector label { font-weight: 700; color: #1a5276; }
+    input[type="date"] { 
+      background: #eaf4fc; border: 1px solid #5dade2; 
+      padding: 0.5rem 1rem; border-radius: 40px; 
+      font-weight: 600; cursor: pointer; font-size: 0.85rem; 
+      color: #1a5276;
+    }
+    .clear-day-btn { 
+      background: #f0e6e4; border: 1px solid #d4b8b2; color: #a55a4a; 
+      padding: 0.55rem 1.3rem; border-radius: 50px; font-weight: 700; 
+      cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 8px -4px rgba(0,0,0,0.05);
+    }
+    .clear-day-btn:hover { 
+      background: #ff5a4a; border-color: #ff5a4a; color: white; 
+      transform: translateY(-5px); box-shadow: 0 14px 22px -10px #ff5a4a80;
+    }
+    
+    /* stat cards */
+    .stats-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .stat-card { 
+      background: #d6e6f0; border-radius: 24px; padding: 0.8rem 1.8rem; 
+      display: flex; align-items: baseline; gap: 0.7rem; transition: all 0.3s; 
+      border: 1px solid rgba(44,125,160,0.2); cursor: default;
+      box-shadow: 0 8px 18px -8px rgba(0,0,0,0.08);
+    }
+    .stat-card:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 22px 32px -14px rgba(44,125,160,0.4); 
+      background: #e0ecf4;
+    }
+    .stat-number { font-size: 2rem; font-weight: 800; color: #1a5276; }
+    .stat-label { color: #2c7da0; font-weight: 600; font-size: 0.85rem; }
+    
+    /* FORM CARD */
+    .form-card { 
+      background: #d6e6f0; border-radius: 24px; margin-bottom: 2rem; 
+      overflow: hidden; transition: all 0.3s; border: 1px solid rgba(44,125,160,0.2);
+      box-shadow: 0 12px 26px -12px rgba(0,0,0,0.12);
+    }
+    .form-card:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 28px 40px -16px rgba(44,125,160,0.4);
+      background: #e0ecf4;
+    }
+    .form-header { background: #cde3ef; padding: 0.9rem 1.5rem; border-bottom: 1px solid #bdd8e8; }
+    .form-header h2 { font-size: 1.15rem; font-weight: 700; color: #1a5276; display: flex; align-items: center; gap: 10px; }
+    
+    .fields-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+      gap: 1.2rem; 
+      padding: 1.6rem; 
+    }
+    .input-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .input-group label { font-weight: 700; font-size: 0.7rem; text-transform: uppercase; color: #2c7da0; }
+    .input-group label .required { color: #c44536; margin-left: 4px; }
+    .input-group input, .input-group textarea, .input-group select { 
+      padding: 0.75rem 1rem; border: 1.5px solid #bdd8e8; border-radius: 16px; 
+      font-size: 0.85rem; background: #eaf4fc; font-family: 'Inter', sans-serif; 
+      transition: 0.2s; color: #1a5276; width: 100%;
+    }
+    .input-group select { 
+      cursor: pointer; appearance: none; 
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%232c7da0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'); 
+      background-repeat: no-repeat; background-position: right 1rem center; background-size: 14px;
+    }
+    .input-group textarea { resize: none; min-height: 100px; max-height: 100px; height: 100px; line-height: 1.5; }
+    .input-group input:focus, .input-group textarea:focus, .input-group select:focus { 
+      outline: none; border-color: #2e86c1; box-shadow: 0 0 0 3px rgba(46,134,193,0.2); 
+      background: #f0f8ff; 
+    }
+    
+    .ksa-hint { font-size: 0.65rem; color: #5dade2; margin-top: 4px; }
+    .word-counter { font-size: 0.65rem; color: #5dade2; margin-top: 4px; display: flex; justify-content: flex-end; gap: 8px; }
+    
+    .time-picker-wrapper { display: flex; align-items: center; gap: 8px; background: #eaf4fc; border: 1.5px solid #bdd8e8; border-radius: 16px; padding: 0.2rem 0.5rem; transition: 0.2s; }
+    .time-picker-wrapper:focus-within { border-color: #2e86c1; box-shadow: 0 0 0 3px rgba(46,134,193,0.2); }
+    .time-picker-wrapper input[type="time"] { border: none; background: transparent; padding: 0.65rem 0.5rem; font-size: 0.85rem; flex: 1; outline: none; font-family: 'Inter', monospace; font-weight: 500; color: #1a5276; }
+    .time-picker-wrapper input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
+    .time-controls { display: flex; flex-direction: column; gap: 2px; }
+    .time-up, .time-down { background: #cde3ef; border: none; border-radius: 12px; width: 28px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; color: #2c7da0; font-size: 10px; }
+    .time-up:hover, .time-down:hover { background: #2e86c1; color: white; transform: scale(1.05); }
+    
+    .button-row { display: flex; justify-content: flex-end; padding: 0 1.5rem 1.5rem 1.5rem; }
+    .btn-add-entry { background: #2e86c1; color: white; padding: 0.75rem 2.2rem; border-radius: 50px; font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 18px -6px #2e86c180; }
+    .btn-add-entry:hover { background: #1b6fa8; transform: translateY(-5px); box-shadow: 0 20px 28px -10px #1b6fa8; }
+    
+    /* Table */
+    .table-wrapper { background: #d6e6f0; border-radius: 24px; overflow-x: auto; transition: all 0.3s; border: 1px solid rgba(44,125,160,0.2); box-shadow: 0 12px 26px -12px rgba(0,0,0,0.1); }
+    .table-wrapper:hover { transform: translateY(-5px); box-shadow: 0 28px 40px -16px rgba(44,125,160,0.4); }
+    .schedule-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 1300px; }
+    .schedule-table th { text-align: left; padding: 1rem 0.8rem; background: #cde3ef; border-bottom: 2px solid #bdd8e8; font-weight: 700; color: #1a5276; }
+    .schedule-table td { padding: 0.9rem 0.8rem; border-bottom: 1px solid #c5daea; color: #1a5276; }
+    .schedule-table tr:hover td { background: rgba(46,134,193,0.08); }
+    .badge { background: #cde3ef; padding: 0.2rem 0.7rem; border-radius: 30px; display: inline-block; font-weight: 600; font-size: 0.73rem; color: #1a5276; }
+    .location-link { color: #2e86c1; text-decoration: none; font-weight: 700; transition: 0.2s; }
+    .location-link:hover { text-decoration: underline; color: #1b6fa8; }
+    .action-icons i { font-size: 1rem; margin: 0 5px; cursor: pointer; transition: 0.2s; color: #5dade2; }
+    .fa-edit:hover { color: #2e86c1; transform: scale(1.15); }
+    .fa-trash-alt:hover { color: #c44536; transform: scale(1.15); }
+    .empty-row td { text-align: center; padding: 2.5rem; color: #7d9db0; }
+    .current-date-badge { background: #2e86c1; color: white; padding: 0.3rem 1rem; border-radius: 40px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  </style>
+</head>
+<body>
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <i class="fas fa-calendar-alt splash-logo"></i>
+      <h1 class="splash-title">DAMMAM TECH</h1>
+      <p class="splash-subtitle">Schedule Management System | KSA</p>
+      <div class="splash-quote"><i class="fas fa-quote-left"></i> Precision. Reliability. Excellence.<i class="fas fa-quote-right"></i></div>
+      <div class="splash-loader"></div>
+      <div class="splash-progress"><div class="splash-progress-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="mainContent" class="main-content">
+    <div class="dashboard-container">
+      <div class="header-section">
+        <div class="logo-area">
+          <i class="fas fa-calendar-alt breathing-logo"></i>
+          <div class="logo-text">
+            <div class="main-title">DAMMAM TECH SCHEDULE | KSA</div>
+            <div class="sub-title">Complete schedule management system</div>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button id="exportExcelBtn" class="btn btn-excel"><i class="fas fa-file-excel"></i> Export Excel</button>
+          <button id="exportPdfBtn" class="btn btn-pdf"><i class="fas fa-file-pdf"></i> Export PDF</button>
+          <button id="excelBackupBtn" class="btn btn-backup"><i class="fas fa-download"></i> Backup as Excel</button>
+          <button id="excelRestoreBtn" class="btn btn-restore"><i class="fas fa-upload"></i> Restore from Excel</button>
+        </div>
+      </div>
+
+      <div class="day-control-panel">
+        <div class="date-selector">
+          <label><i class="far fa-calendar-alt"></i> SELECT DATE:</label>
+          <input type="date" id="datePicker">
+          <span id="selectedDateDisplay" class="current-date-badge"></span>
+        </div>
+        <button id="clearDayBtn" class="clear-day-btn"><i class="fas fa-trash-alt"></i> CLEAR THIS DATE</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><span class="stat-number" id="totalJobsDay">0</span><span class="stat-label">Tasks for Date</span></div>
+        <div class="stat-card"><span class="stat-number" id="uniqueTechsDay">0</span><span class="stat-label">Technicians</span></div>
+        <div class="stat-card"><span class="stat-number" id="uniqueClientsDay">0</span><span class="stat-label">Active Clients</span></div>
+        <div class="stat-card"><span class="stat-number" id="totalAllTime">0</span><span class="stat-label">Total Tasks</span></div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-header"><h2><i class="fas fa-plus-circle"></i> ADD NEW SCHEDULE ENTRY</h2></div>
+        <div class="fields-grid">
+          <div class="input-group"><label>CLIENT NAME <span class="required">*</span></label><input type="text" id="newClient" placeholder="e.g., Saudi Aramco"></div>
+          <div class="input-group"><label>LOCATION <span class="required">*</span></label><input type="text" id="newLoc" placeholder="Dammam, Saudi Arabia"></div>
+          <div class="input-group"><label>AREA / DISTRICT</label><input type="text" id="newArea" placeholder="e.g., Al Faisaliyah"></div>
+          <div class="input-group">
+            <label>TECHNICIAN <span class="required">*</span></label>
+            <select id="newTech">
+              <option value="">-- Select Technician --</option>
+            </select>
+          </div>
+          <div class="input-group"><label>REQUEST NUMBER <span class="required">*</span></label><input type="text" id="newReq" placeholder="SRV-42X1"></div>
+          <div class="input-group">
+            <label>CONTACT (+966) <span class="required">*</span></label>
+            <input type="text" id="newContact" placeholder="5XXXXXXXX" value="+966">
+          </div>
+          <div class="input-group">
+            <label>TECHNICAL REASON <span id="wordWarning" style="color:#c44536; font-size:0.7rem; margin-left:8px;"></span></label>
+            <textarea id="newReason" rows="4" placeholder="Describe the technical issue"></textarea>
+            <div class="word-counter">📝 <span id="wordCount">0</span> / 230 words</div>
+          </div>
+          <div class="input-group">
+            <label>TIME <span class="required">*</span></label>
+            <div class="time-picker-wrapper" id="timePickerWrapper">
+              <input type="time" id="newTime" value="09:00">
+              <div class="time-controls">
+                <button type="button" class="time-up" id="timeUpBtn"><i class="fas fa-chevron-up"></i></button>
+                <button type="button" class="time-down" id="timeDownBtn"><i class="fas fa-chevron-down"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="button-row"><button id="manualAddBtn" class="btn-add-entry"><i class="fas fa-save"></i> ADD TO SELECTED DATE</button></div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="schedule-table">
+          <thead><tr><th>DATE</th><th>CLIENT</th><th>LOCATION</th><th>AREA</th><th>TECHNICIAN</th><th>REQUEST #</th><th>CONTACT</th><th>TECH REASON</th><th>TIME</th><th>ACTIONS</th></tr></thead>
+          <tbody id="scheduleTableBody"><tr class="empty-row"><td colspan="10">Loading schedule data...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== TECHNICIAN LIST ====================
+    const TECHNICIANS_LIST = [
+      "AHTASHAM ALI", "HARIS ZAMEER", "FARMAN HUSAIN", "ARSLAN HAFEEZ", "SALIM BUNDU",
+      "Azam Raza", "MUHAMMAD ADIL MUHAMMAD MUBEEN", "MUHAMMAD AKBAR HUSSAIN KHAN",
+      "Shabad Shajad", "Manuel Maruhom Racal", "Sulemaan Abdul Salam", "Mohammad Suhail",
+      "Mohd Rizwan Noor Hasan", "Ayan Mohd Hasin", "Kamran Rasheed", "FRANCIS RAMON CATE MARTINEZ",
+      "MOHAMMAD shahbaj", "Mohamed Ashraf", "Bilal Hassan", "Ayaz Khan", "Ahmed Abdelmoty",
+      "Azam Noory", "Abdelhasib Mohamed", "Modather Awad", "Abdel sadek", "Amr Elsaeed",
+      "Adnan Khadr", "Ahmed Moawad", "Sultan Said", "Safwan Sharaf", "Hussien Ramdan",
+      "Ahmed Al-Ali", "Emad Ali", "PRADEEP KARANAKKOTTIL", "Mohamed Ghareb", "Mohamed Noury",
+      "Mohamed Abo-Deshesh"
+    ];
+
+    function populateTechnicianDropdown() {
+      const selectEl = document.getElementById('newTech');
+      if (!selectEl) return;
+      selectEl.innerHTML = '<option value="">-- Select Technician --</option>';
+      TECHNICIANS_LIST.forEach(tech => {
+        const option = document.createElement('option');
+        option.value = tech;
+        option.textContent = tech;
+        selectEl.appendChild(option);
+      });
+    }
+
+    // Splash
+    setTimeout(() => {
+      const splash = document.getElementById('splashScreen');
+      const main = document.getElementById('mainContent');
+      if (splash && main) {
+        splash.style.opacity = '0';
+        setTimeout(() => { splash.style.display = 'none'; main.classList.add('visible'); }, 800);
+      }
+    }, 3000);
+
+    // Storage
+    const STORAGE_KEY = "DammamTech_Final_v7";
+    let masterSchedule = {};
+    const MAX_WORDS = 230;
+
+    function countWords(text) { return text && text.trim() ? text.trim().split(/\s+/).length : 0; }
+    function updateWordCounter() {
+      const ta = document.getElementById('newReason');
+      const span = document.getElementById('wordCount');
+      const warn = document.getElementById('wordWarning');
+      const w = countWords(ta.value);
+      span.innerText = w;
+      if (w > MAX_WORDS) { span.style.color = '#c44536'; warn.innerText = '⚠️ EXCEEDS 230 WORDS!'; ta.classList.add('error'); }
+      else if (w === MAX_WORDS) { span.style.color = '#e67e22'; warn.innerText = '⚠️ Maximum reached'; ta.classList.remove('error'); }
+      else { span.style.color = '#5dade2'; warn.innerText = ''; ta.classList.remove('error'); }
+    }
+    function validateContactNumber(contact) {
+      let c = contact.replace(/\s/g, '');
+      if (!c.startsWith('+966')) return { valid: false, message: 'Contact must start with +966' };
+      let after = c.substring(4);
+      if (!/^\d+$/.test(after)) return { valid: false, message: 'Only digits after +966' };
+      if (c.length < 12) return { valid: false, message: 'Too short (min 12 digits)' };
+      if (c.length > 13) return { valid: false, message: 'Too long (max 13 digits)' };
+      return { valid: true, cleaned: c };
+    }
+    function formatKSANumber(raw) {
+      let c = raw.replace(/\s/g, '');
+      if (c.startsWith('+966')) return c;
+      if (c.startsWith('966')) return '+' + c;
+      if (c.startsWith('0')) return '+966' + c.substring(1);
+      if (c.startsWith('5')) return '+966' + c;
+      return '+966' + c;
+    }
+    function getTodayDate() { let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function escapeHtml(s) { return s ? s.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;') : ''; }
+    function showToast(msg, col) {
+      let t = document.createElement('div');
+      t.innerText = msg;
+      t.style.position = 'fixed'; t.style.bottom = '25px'; t.style.right = '25px';
+      t.style.backgroundColor = '#d6e6f0'; t.style.borderLeft = `4px solid ${col}`;
+      t.style.color = '#1a5276'; t.style.padding = '12px 20px'; t.style.borderRadius = '16px';
+      t.style.fontWeight = '600'; t.style.zIndex = '9999'; t.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) try { masterSchedule = JSON.parse(saved); } catch(e) { masterSchedule = {}; }
+      if (Object.keys(masterSchedule).length === 0) {
+        const today = getTodayDate(), tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+        const tomStr = tomorrow.toISOString().slice(0,10);
+        masterSchedule = {
+          [today]: [{ date: today, clientName: "Saudi Aramco", location: "King Abdulaziz Rd, Dhahran", area: "Dhahran", technicianName: "Ahmed Abdelmoty", requestNumber: "SRV-42105", contactNumber: "+966551234567", technicalReason: "Server maintenance - regular security update", time: "09:00" }],
+          [tomStr]: [{ date: tomStr, clientName: "Dammam Industrial City", location: "2nd Industrial City", area: "Industrial Area", technicianName: "Bilal Hassan", requestNumber: "SRV-42233", contactNumber: "+966562345678", technicalReason: "AC maintenance - cooling system inspection", time: "10:00" }]
+        };
+        saveToStorage();
+      }
+      updateTotalStats();
+    }
+    function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(masterSchedule)); updateTotalStats(); }
+    function updateTotalStats() { let total = 0; for (let d in masterSchedule) total += masterSchedule[d].length; document.getElementById('totalAllTime').innerText = total; }
+
+    let currentDate = getTodayDate();
+    const datePicker = document.getElementById('datePicker');
+    if (datePicker) datePicker.value = currentDate;
+    function updateDateDisplay() {
+      const span = document.getElementById('selectedDateDisplay');
+      if (span) {
+        const fmt = new Date(currentDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        span.innerHTML = `<i class="far fa-calendar-check"></i> ${fmt}`;
+      }
+    }
+    updateDateDisplay();
+
+    function renderCurrentDate() {
+      const entries = masterSchedule[currentDate] || [];
+      const tbody = document.getElementById('scheduleTableBody');
+      if (!tbody) return;
+      if (entries.length === 0) { tbody.innerHTML = '<tr class="empty-row"><td colspan="10">No tasks scheduled for this date. Use the form above to add entries.</td></tr>'; updateStatsDay(entries); return; }
+      let html = '';
+      entries.forEach((e, idx) => {
+        const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}`;
+        html += `<tr>
+          <td><span class="badge"><i class="far fa-calendar"></i> ${escapeHtml(e.date)}</span></td>
+          <td><span class="badge"><i class="fas fa-building"></i> ${escapeHtml(e.clientName)}</span></td>
+          <td><a href="${mapLink}" target="_blank" class="location-link"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(e.location)}</a></td>
+          <td><span class="badge">${escapeHtml(e.area || '-')}</span></td>
+          <td><span class="badge"><i class="fas fa-user-check"></i> ${escapeHtml(e.technicianName)}</span></td>
+          <td><code style="background:#cde3ef; padding:4px 10px; border-radius:20px;">${escapeHtml(e.requestNumber)}</code></td>
+          <td><a href="tel:${e.contactNumber.replace(/\s/g,'')}" style="color:#2e86c1; font-weight:700;">${escapeHtml(e.contactNumber)}</a></td>
+          <td><span style="background:#eaf4fc; padding:4px 8px; border-radius:20px; display:inline-block; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(e.technicalReason || '-')}">${escapeHtml(e.technicalReason || '-')}</span></td>
+          <td><span class="badge"><i class="far fa-clock"></i> ${escapeHtml(e.time || '-')}</span></td>
+          <td class="action-icons"><i class="fas fa-edit edit-task" data-idx="${idx}"></i><i class="fas fa-trash-alt delete-task" data-idx="${idx}"></i></td>
+        </tr>`;
+      });
+      tbody.innerHTML = html;
+      document.querySelectorAll('.edit-task').forEach(el => el.addEventListener('click', () => editEntry(currentDate, parseInt(el.dataset.idx))));
+      document.querySelectorAll('.delete-task').forEach(el => el.addEventListener('click', () => { if(confirm('Delete entry?')) { let arr = masterSchedule[currentDate] || []; arr.splice(parseInt(el.dataset.idx),1); if(arr.length===0) delete masterSchedule[currentDate]; else masterSchedule[currentDate]=arr; saveToStorage(); renderCurrentDate(); showToast("Entry deleted","#c44536"); } }));
+      updateStatsDay(entries);
+    }
+    function updateStatsDay(entries) { document.getElementById('totalJobsDay').innerText = entries.length; const techSet = new Set(entries.map(e=>e.technicianName?.trim())); const clientSet = new Set(entries.map(e=>e.clientName?.trim())); document.getElementById('uniqueTechsDay').innerText = techSet.size; document.getElementById('uniqueClientsDay').innerText = clientSet.size; }
+
+    function editEntry(date, idx) {
+      const e = masterSchedule[date][idx];
+      if (!e) return;
+      let newClient = prompt("Edit Client Name:", e.clientName); if (!newClient) return;
+      let newLoc = prompt("Edit Location:", e.location); if (!newLoc) return;
+      let newArea = prompt("Edit Area/District:", e.area || ''); if (newArea === null) return;
+      let newTech = prompt("Edit Technician (must be from list):\n" + TECHNICIANS_LIST.join(", "), e.technicianName); if (!newTech || !TECHNICIANS_LIST.includes(newTech.trim())) { showToast("Invalid technician","#c44536"); return; }
+      let newReq = prompt("Edit Request Number:", e.requestNumber); if (!newReq) return;
+      let newContact = prompt("Edit Contact (+966...):", e.contactNumber); if (!newContact) return;
+      let newReason = prompt("Edit Technical Reason:", e.technicalReason || ''); if (newReason === null) return;
+      let newTime = prompt("Edit Time (HH:MM):", e.time); if (!newTime) return;
+      let cv = validateContactNumber(newContact); if(!cv.valid){ showToast(cv.message,"#c44536"); return; }
+      if(countWords(newReason) > MAX_WORDS){ showToast(`Reason exceeds ${MAX_WORDS} words`,"#c44536"); return; }
+      masterSchedule[date][idx] = { date: e.date, clientName: newClient.trim(), location: newLoc.trim(), area: newArea.trim(), technicianName: newTech.trim(), requestNumber: newReq.trim(), contactNumber: formatKSANumber(newContact.trim()), technicalReason: newReason.trim(), time: newTime.trim() };
+      saveToStorage(); renderCurrentDate(); showToast("Entry updated","#2e86c1");
+    }
+
+    function addToCurrentDate() {
+      const client = document.getElementById('newClient').value.trim();
+      const location = document.getElementById('newLoc').value.trim();
+      const area = document.getElementById('newArea').value.trim();
+      const tech = document.getElementById('newTech').value;
+      const req = document.getElementById('newReq').value.trim();
+      let contactRaw = document.getElementById('newContact').value.trim();
+      const reason = document.getElementById('newReason').value.trim();
+      const time = document.getElementById('newTime').value;
+      let errors = [];
+      if(!location) errors.push("Location required"); if(!time) errors.push("Time required");
+      if(!client) errors.push("Client required"); if(!tech) errors.push("Technician required");
+      if(!req) errors.push("Request # required");
+      const cv = validateContactNumber(contactRaw); if(!cv.valid) errors.push(cv.message);
+      if(countWords(reason) > MAX_WORDS) errors.push(`Reason > ${MAX_WORDS} words`);
+      if(tech && !TECHNICIANS_LIST.includes(tech)) errors.push("Invalid technician");
+      if(errors.length) { showToast(`Fix:\n• ${errors.join('\n• ')}`,"#c44536"); return; }
+      const formattedContact = cv.cleaned || formatKSANumber(contactRaw);
+      const entries = masterSchedule[currentDate] || [];
+      entries.push({ date: currentDate, clientName: client, location: location, area: area || '-', technicianName: tech, requestNumber: req, contactNumber: formattedContact, technicalReason: reason || '-', time: time });
+      masterSchedule[currentDate] = entries;
+      saveToStorage();
+      document.getElementById('newClient').value = ''; document.getElementById('newLoc').value = ''; document.getElementById('newArea').value = '';
+      document.getElementById('newTech').value = ''; document.getElementById('newReq').value = ''; document.getElementById('newContact').value = '+966';
+      document.getElementById('newReason').value = ''; document.getElementById('newTime').value = '09:00';
+      updateWordCounter(); renderCurrentDate(); showToast(`✓ Added to ${currentDate}`,"#2e86c1");
+    }
+
+    function clearCurrentDate() { if(confirm(`⚠️ PERMANENTLY DELETE all entries for ${currentDate}?`)) { delete masterSchedule[currentDate]; saveToStorage(); renderCurrentDate(); showToast(`${currentDate} cleared`,"#c44536"); } }
+    function exportToExcel() { const wb = XLSX.utils.book_new(); const dates = Object.keys(masterSchedule).sort(); if(!dates.length) { alert("No data"); return; } for(let date of dates) { const data = [["Date","Client","Location","Area","Technician","Request #","Contact","Tech Reason","Time"]]; masterSchedule[date].forEach(e => data.push([e.date,e.clientName,e.location,e.area,e.technicianName,e.requestNumber,e.contactNumber,e.technicalReason,e.time])); const ws = XLSX.utils.aoa_to_sheet(data); ws['!cols'] = [{wch:14},{wch:25},{wch:35},{wch:18},{wch:22},{wch:16},{wch:22},{wch:35},{wch:12}]; XLSX.utils.book_append_sheet(wb, ws, date.substring(0,10)); } XLSX.writeFile(wb, `Dammam_Schedule_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.xlsx`); showToast("Excel exported","#2e86c1"); }
+    async function exportToPDF() { const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); doc.setFontSize(16); doc.setTextColor(26,82,118); doc.text("DAMMAM TECH SCHEDULE - KSA", 14, 20); doc.setFontSize(9); doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30); let y = 38; const dates = Object.keys(masterSchedule).sort(); if(!dates.length) { doc.text("No data",14,50); doc.save("Empty.pdf"); return; } for(let date of dates) { const entries = masterSchedule[date]; if(!entries.length) continue; if(y>170){ doc.addPage(); y=20; } doc.setFontSize(10); doc.setTextColor(44,125,160); doc.text(`${date}`, 14, y); y+=5; const headers = [["Client","Location","Area","Technician","Request","Contact","Tech Reason","Time"]]; const rows = entries.map(e => [e.clientName,e.location,e.area,e.technicianName,e.requestNumber,e.contactNumber,e.technicalReason,e.time]); const res = doc.autoTable({ head: headers, body: rows, startY: y, theme: 'striped', headStyles: { fillColor: [46,134,193], textColor: 255, fontSize: 8 }, styles: { fontSize: 7, cellPadding: 2 }, margin: { left: 10, right: 10 }, columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 35 }, 2: { cellWidth: 22 }, 3: { cellWidth: 25 }, 4: { cellWidth: 22 }, 5: { cellWidth: 28 }, 6: { cellWidth: 38 }, 7: { cellWidth: 18 } } }); y = res.lastAutoTable.finalY + 6; } doc.save(`Dammam_Schedule_${new Date().toISOString().slice(0,10)}.pdf`); showToast("PDF exported","#c44536"); }
+    function restoreFromExcel() { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx, .xls'; inp.onchange = e => { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = ev => { const data = new Uint8Array(ev.target.result); const wb = XLSX.read(data, { type: 'array' }); const newSch = {}; for(let sheet of wb.SheetNames) { const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, defval: "" }); if(rows.length<2) continue; for(let i=1;i<rows.length;i++) { const r = rows[i]; if(!r[0] && !r[1]) continue; let dt = String(r[0]||"").trim(); if(!dt.match(/\d{4}-\d{2}-\d{2}/)) continue; let cl = String(r[1]||"").trim(), loc = String(r[2]||"").trim(), area = String(r[3]||"").trim(), tech = String(r[4]||"").trim(), reqNum = String(r[5]||"").trim(), cont = String(r[6]||"").trim(), reas = String(r[7]||"").trim(), tm = String(r[8]||"").trim(); if(cl && loc && tech && reqNum && cont && TECHNICIANS_LIST.includes(tech)) { if(!newSch[dt]) newSch[dt]=[]; newSch[dt].push({ date: dt, clientName: cl, location: loc, area: area||'-', technicianName: tech, requestNumber: reqNum, contactNumber: formatKSANumber(cont), technicalReason: reas||'-', time: tm||"Not set" }); } } } if(Object.keys(newSch).length===0){ alert("No valid data"); return; } masterSchedule = newSch; saveToStorage(); renderCurrentDate(); showToast("Restore successful!","#2e86c1"); }; reader.readAsArrayBuffer(file); }; inp.click(); }
+
+    // Event listeners
+    datePicker?.addEventListener('change', (e) => { currentDate = e.target.value; updateDateDisplay(); renderCurrentDate(); });
+    document.getElementById('clearDayBtn')?.addEventListener('click', clearCurrentDate);
+    document.getElementById('manualAddBtn')?.addEventListener('click', addToCurrentDate);
+    document.getElementById('exportExcelBtn')?.addEventListener('click', exportToExcel);
+    document.getElementById('exportPdfBtn')?.addEventListener('click', exportToPDF);
+    document.getElementById('excelBackupBtn')?.addEventListener('click', exportToExcel);
+    document.getElementById('excelRestoreBtn')?.addEventListener('click', restoreFromExcel);
+    document.getElementById('newReason')?.addEventListener('input', updateWordCounter);
+    document.getElementById('newContact')?.addEventListener('blur', function() { let v = validateContactNumber(this.value); if(!v.valid) this.classList.add('error'); else this.classList.remove('error'); });
+    
+    function setupTimePicker() {
+      const timeInput = document.getElementById('newTime'), up = document.getElementById('timeUpBtn'), down = document.getElementById('timeDownBtn');
+      if(!timeInput) return;
+      up?.addEventListener('click', () => { let [h,m] = timeInput.value.split(':').map(Number); m+=15; if(m>=60){ m=0; h=(h+1)%24; } timeInput.value = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; });
+      down?.addEventListener('click', () => { let [h,m] = timeInput.value.split(':').map(Number); m-=15; if(m<0){ m=45; h=(h-1+24)%24; } timeInput.value = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; });
+    }
+    setupTimePicker();
+    populateTechnicianDropdown();
+    loadFromStorage();
+    renderCurrentDate();
+    updateWordCounter();
+  </script>
+</body>
+</html>
